@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Sharing Link - {{ file.display_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Generate Sharing Link & QR</h4>
+                <p class="text-muted small mb-0">Create protected link for: <strong>{{ file.display_name }}</strong></p>
+            </div>
+            <a href="{% url 'sharing:sharing_links' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> All Links
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body p-4">
+                {% if form.errors %}
+                <div class="alert alert-danger py-2 px-3 small alert-dismissible fade show mb-3">
+                    <strong>Error:</strong>
+                    <ul class="mb-0 ps-3">
+                        {% for field in form %}
+                            {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <!-- Password Protection Toggle -->
+                    <div class="p-3 mb-3 rounded-3 bg-light border">
+                        <div class="form-check form-switch mb-2">
+                            {{ form.enable_password }}
+                            <label class="form-check-label fw-semibold" for="enablePasswordCheck">
+                                <i class="bi bi-key-fill text-primary me-1"></i> Require Password Protection
+                            </label>
+                        </div>
+                        <div id="passwordFieldContainer" style="display: none;">
+                            <label class="form-label small fw-semibold mt-2">Link Access Password</label>
+                            {{ form.password }}
+                            <small class="text-muted d-block mt-1">Users will be prompted to enter this password before decrypting.</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Expiration (Hours)</label>
+                            {{ form.expiration_hours }}
+                            <small class="text-muted">Link auto-invalidates after specified hours.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Max Allowed Downloads</label>
+                            {{ form.max_downloads }}
+                            <small class="text-muted">Enforced atomically (e.g. 5 downloads).</small>
+                        </div>
+                    </div>
+
+                    <div class="p-3 mb-4 rounded-3 bg-info-subtle border border-info-subtle small text-dark">
+                        <i class="bi bi-info-circle-fill text-info me-1"></i>
+                        The generated URL and QR code will use the host computer's local Wi-Fi IP address (<code>{{ LAN_HOST_IP }}:{{ LAN_HOST_PORT }}</code>) so any smartphone or laptop on your LAN can scan and access it.
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'sharing:sharing_links' %}" class="btn btn-light">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-link-45deg me-1"></i> Generate Link & QR Code
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var pwCheck = document.getElementById('enablePasswordCheck');
+    var pwContainer = document.getElementById('passwordFieldContainer');
+    if (pwCheck && pwContainer) {
+        pwCheck.addEventListener('change', function() {
+            pwContainer.style.display = this.checked ? 'block' : 'none';
+        });
+        if (pwCheck.checked) {
+            pwContainer.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

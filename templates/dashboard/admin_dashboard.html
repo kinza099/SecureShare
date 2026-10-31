@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrator Control Center - SecureShare{% endblock %}
+
+{% block content %}
+<!-- LAN Deployment Banner -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 text-white" style="background: linear-gradient(135deg, #0b132b 0%, #1c2541 100%);">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-info text-dark fw-bold"><i class="bi bi-broadcast"></i> LAN / Wi-Fi Active</span>
+                    <span class="badge bg-secondary font-monospace">Port {{ port }}</span>
+                </div>
+                <h4 class="fw-bold mb-1">Host Deployment Endpoint: <span class="text-info font-monospace">http://{{ host_ip }}:{{ port }}/</span></h4>
+                <p class="text-secondary small mb-0">
+                    Devices connected to the same Wi-Fi can open this URL in any mobile or desktop browser to register, upload, and decrypt shared files.
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <button class="btn btn-outline-info btn-sm" onclick="copyToClipboard('http://{{ host_ip }}:{{ port }}/', this)">
+                    <i class="bi bi-clipboard"></i> Copy LAN URL
+                </button>
+                <a href="{% url 'monitoring:admin_settings' %}" class="btn btn-light btn-sm ms-2">
+                    <i class="bi bi-sliders"></i> Network Config
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Statistics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon primary">
+                <i class="bi bi-people"></i>
+            </div>
+            <div>
+                <div class="stat-title">Registered Users</div>
+                <div class="stat-value">{{ total_users }} <small class="text-muted fs-6">({{ active_users }} active)</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon success">
+                <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <div>
+                <div class="stat-title">Encrypted Files</div>
+                <div class="stat-value">{{ total_encrypted }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon info">
+                <i class="bi bi-hdd-stack"></i>
+            </div>
+            <div>
+                <div class="stat-title">Vault Storage</div>
+                <div class="stat-value" style="font-size: 1.4rem;">{{ total_storage_formatted }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon {% if security_alerts_count > 0 %}danger{% else %}success{% endif %}">
+                <i class="bi bi-shield-exclamation"></i>
+            </div>
+            <div>
+                <div class="stat-title">Security Alerts</div>
+                <div class="stat-value text-danger">{{ security_alerts_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Security Alerts Review Queue -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Suspicious Activity & Security Events</h6>
+                <a href="{% url 'monitoring:admin_suspicious' %}" class="small text-decoration-none fw-semibold">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for alert in recent_alerts %}
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div>
+                                <span class="badge {% if alert.severity == 'CRITICAL' %}bg-danger{% elif alert.severity == 'HIGH' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} me-1">
+                                    {{ alert.severity }}
+                                </span>
+                                <strong class="small text-dark">{{ alert.rule_name }}</strong>
+                            </div>
+                            <span class="small text-muted" style="font-size: 0.72rem;">{{ alert.timestamp|timesince }} ago</span>
+                        </div>
+                        <p class="text-muted small mb-2">{{ alert.description }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-secondary font-monospace" style="font-size: 0.75rem;">Source IP: {{ alert.ip_address }}</span>
+                            {% if not alert.is_reviewed %}
+                            <form method="post" action="{% url 'monitoring:admin_suspicious' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="event_id" value="{{ alert.id }}">
+                                <button type="submit" name="review_event" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;">
+                                    Mark Reviewed
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="badge bg-light text-secondary border">Reviewed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-muted small">No security events triggered. System healthy.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Audit Activity Logs -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-journal-text text-primary me-2"></i>Live System Audit Stream</h6>
+                <a href="{% url 'monitoring:admin_logs' %}" class="small text-decoration-none fw-semibold">Full Logs</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Event</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_activities %}
+                        <tr>
+                            <td class="text-nowrap small text-muted">{{ log.timestamp|date:"H:i:s" }}</td>
+                            <td class="fw-semibold text-truncate" style="max-width: 120px;">
+                                {{ log.user.username|default:"Anonymous" }}
+                            </td>
+                            <td class="text-truncate" style="max-width: 160px;" title="{{ log.description }}">
+                                {{ log.get_event_type_display }}
+                            </td>
+                            <td>
+                                {% if log.status == 'SUCCESS' %}
+                                <span class="badge bg-success-subtle text-success">OK</span>
+                                {% elif log.status == 'BLOCKED' %}
+                                <span class="badge bg-danger-subtle text-danger">Blocked</span>
+                                {% else %}
+                                <span class="badge bg-warning-subtle text-warning">Warn</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No audit events yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

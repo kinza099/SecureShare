@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}In-App Notifications - SecureShare{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">In-App Notifications</h4>
+        <p class="text-muted small mb-0">System alerts, file sharing notifications, and security updates</p>
+    </div>
+    {% if notifications %}
+    <a href="{% url 'notifications:mark_all_read' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+    </a>
+    {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="list-group list-group-flush">
+        {% for n in notifications %}
+        <div class="list-group-item p-3 d-flex align-items-center justify-content-between {% if not n.is_read %}bg-light{% endif %}">
+            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center {% if not n.is_read %}bg-primary text-white{% else %}bg-secondary-subtle text-secondary{% endif %}" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    {% if 'SHARE' in n.notification_type %}<i class="bi bi-share"></i>
+                    {% elif 'SECURITY' in n.notification_type %}<i class="bi bi-shield-exclamation text-danger"></i>
+                    {% elif 'DOWNLOAD' in n.notification_type %}<i class="bi bi-download"></i>
+                    {% elif 'UPLOAD' in n.notification_type %}<i class="bi bi-cloud-arrow-up"></i>
+                    {% else %}<i class="bi bi-bell"></i>{% endif %}
+                </div>
+                <div class="overflow-hidden">
+                    <div class="d-flex align-items-center gap-2">
+                        <strong class="text-dark small">{{ n.title }}</strong>
+                        {% if not n.is_read %}
+                        <span class="badge bg-primary" style="font-size: 0.65rem;">New</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted small mb-0">{{ n.message }}</p>
+                    <span class="text-muted" style="font-size: 0.7rem;">{{ n.created_at|timesince }} ago</span>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                {% if n.link_url %}
+                <a href="{{ n.link_url }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
+                    View
+                </a>
+                {% endif %}
+                {% if not n.is_read %}
+                <a href="{% url 'notifications:mark_read' n.id %}" class="btn btn-sm btn-light text-secondary py-0 px-2" title="Mark Read">
+                    <i class="bi bi-check2"></i>
+                </a>
+                {% endif %}
+                <a href="{% url 'notifications:delete' n.id %}" class="btn btn-sm btn-light text-danger py-0 px-2" title="Delete">
+                    <i class="bi bi-trash3"></i>
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary"></i>
+            You have no notifications.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Version History - {{ file.display_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Version History: {{ file.display_name }}</h4>
+        <p class="text-muted small mb-0">Each revision is encrypted with an isolated 256-bit DEK and unique nonce</p>
+    </div>
+    <a href="{% url 'filemanager:details' file.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Back to Details
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Version</th>
+                    <th>Uploaded At</th>
+                    <th>File Size</th>
+                    <th>SHA-256 Digest</th>
+                    <th>Change Summary</th>
+                    <th class="text-end">Download</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in versions %}
+                <tr>
+                    <td>
+                        <span class="badge {% if v.version_number == file.current_version %}bg-primary{% else %}bg-secondary{% endif %}">
+                            v{{ v.version_number }} {% if v.version_number == file.current_version %}(Active Current){% endif %}
+                        </span>
+                    </td>
+                    <td class="small text-muted">{{ v.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td class="small">{{ v.formatted_size }}</td>
+                    <td class="font-monospace small text-truncate" style="max-width: 180px;" title="{{ v.sha256_hash }}">
+                        {{ v.sha256_hash|slice:":16" }}...
+                    </td>
+                    <td class="small">{{ v.change_summary|default:"—" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'filemanager:download' file.id %}?version={{ v.version_number }}" class="btn btn-sm btn-outline-primary" title="Download Version {{ v.version_number }}">
+                            <i class="bi bi-download me-1"></i> Download v{{ v.version_number }}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

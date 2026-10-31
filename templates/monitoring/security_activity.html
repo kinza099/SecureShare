@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Security & Activity Audit - SecureShare{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Personal Security & Activity Audit</h4>
+        <p class="text-muted small mb-0">Immutable chronological record of your account actions, file operations, and logins</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Event Type</th>
+                    <th>Target / Resource</th>
+                    <th>Source IP</th>
+                    <th>Status</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="small text-nowrap fw-semibold">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            {{ log.get_event_type_display }}
+                        </span>
+                    </td>
+                    <td class="font-monospace small text-truncate" style="max-width: 140px;" title="{{ log.resource_id }}">
+                        {{ log.resource_id|default:"—" }}
+                    </td>
+                    <td class="font-monospace small">{{ log.ip_address }}</td>
+                    <td>
+                        {% if log.status == 'SUCCESS' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Success</span>
+                        {% elif log.status == 'BLOCKED' %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Blocked</span>
+                        {% else %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{{ log.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted text-truncate" style="max-width: 280px;" title="{{ log.description }}">
+                        {{ log.description }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted small">No activity recorded for your account.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

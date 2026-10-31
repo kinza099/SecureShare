@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}User Profile - SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">User Profile</h4>
+                <p class="text-muted small mb-0">Manage your identity and authentication security settings</p>
+            </div>
+            <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-key"></i> Change Password
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Username</label>
+                            <input type="text" class="form-control bg-light" value="{{ request.user.username }}" readonly>
+                            <small class="text-muted">Username is immutable for audit log integrity.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Role</label>
+                            <input type="text" class="form-control bg-light" value="{% if IS_ADMIN %}Administrator (RBAC Admin){% else %}Standard User (RBAC User){% endif %}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        {{ form.full_name }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'dashboard:user_dashboard' %}" class="btn btn-light">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Security Metadata -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-check text-success me-2"></i>Security Specifications</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Password Hash Algorithm</div>
+                        <div class="fw-semibold font-monospace">Argon2id (RFC 9106)</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Last Login IP</div>
+                        <div class="fw-semibold font-monospace">{{ request.user.last_login_ip|default:"127.0.0.1" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Session Timeout</div>
+                        <div class="fw-semibold">30 minutes of inactivity</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small text-muted">Account Status</div>
+                        <span class="badge bg-success">Active & Verified</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

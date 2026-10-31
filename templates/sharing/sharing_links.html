@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+
+{% block title %}Sharing Links & QR Codes - SecureShare{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Sharing Links &amp; QR Codes</h4>
+        <p class="text-muted small mb-0">Time-bound, password-protected links accessible across devices on your local Wi-Fi</p>
+    </div>
+    <!-- Quick Create Link Dropdown -->
+    <div class="dropdown">
+        <button class="btn btn-primary btn-sm dropdown-toggle shadow-sm d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">Create New Sharing Link</span><span class="d-sm-none">New Link</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="max-height: 280px; overflow-y: auto;">
+            <li class="dropdown-header small fw-bold">Select File:</li>
+            {% for f in files %}
+            <li><a class="dropdown-item small" href="{% url 'sharing:create_link' f.id %}">{{ f.display_name }} ({{ f.file_type|upper }})</a></li>
+            {% empty %}
+            <li class="dropdown-item small text-muted">No files in your vault</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- QR Code Modals -->
+{% for item in link_items %}
+{% if item.raw_token %}
+<div class="modal fade" id="qrModal{{ item.link.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h6 class="modal-title fw-bold"><i class="bi bi-qr-code text-info me-2"></i>Mobile Wi-Fi QR Code</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="small text-muted mb-3">Scan with any smartphone on the same Wi-Fi to open and decrypt the file.</p>
+                <div class="p-3 bg-light rounded d-inline-block border mb-3">
+                    <img src="{% url 'sharing:qr_code' item.raw_token %}" alt="Sharing QR Code" class="img-fluid" style="width: 220px; height: 220px;">
+                </div>
+                <div class="p-2 bg-light rounded border font-monospace small text-break user-select-all mb-3" style="font-size: 0.78rem;">{{ item.full_url }}</div>
+                <button class="btn btn-sm btn-primary" onclick="copyToClipboard('{{ item.full_url }}', this)">
+                    <i class="bi bi-clipboard"></i> Copy URL
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  SECTION 1 — Direct User Shares (براہ راست یوزر کو شیئر)   -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-people text-success me-2"></i>
+            Files Shared Directly with Users
+            {% if direct_shares %}<span class="badge bg-success-subtle text-success border border-success-subtle ms-2">{{ direct_shares|length }}</span>{% endif %}
+        </h6>
+        <small class="text-muted d-none d-sm-block">Grant access without a link — revoke any time</small>
+    </div>
+
+    <!-- DESKTOP TABLE -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>File</th>
+                    <th>Recipient</th>
+                    <th>Permission</th>
+                    <th>Shared On</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th class="text-end">Revoke</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for share in direct_shares %}
+                <tr class="{% if share.is_revoked %}table-secondary{% endif %}">
+                    <td>
+                        <a href="{% url 'filemanager:details' share.file_record.id %}" class="fw-semibold text-dark text-decoration-none text-truncate d-inline-block" style="max-width:200px;">
+                            {{ share.file_record.display_name }}
+                        </a>
+                        <div class="small text-muted">{{ share.file_record.file_type|upper }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ share.recipient.full_name|default:share.recipient.username }}</div>
+                        <div class="small text-muted font-monospace">@{{ share.recipient.username }}</div>
+                        {% if share.recipient.is_admin or share.recipient.is_superuser %}
+                        <span class="badge bg-warning text-dark" style="font-size:0.65rem;"><i class="bi bi-shield-shaded"></i> Admin</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if share.permission == 'DOWNLOADER' %}bg-primary{% else %}bg-info{% endif %}-subtle text-{% if share.permission == 'DOWNLOADER' %}primary{% else %}info{% endif %} border border-{% if share.permission == 'DOWNLOADER' %}primary{% else %}info{% endif %}-subtle">
+                            {% if share.permission == 'DOWNLOADER' %}<i class="bi bi-download"></i>{% else %}<i class="bi bi-eye"></i>{% endif %}
+                            {{ share.get_permission_display }}
+                        </span>
+                    </td>
+                    <td class="small text-muted text-nowrap">{{ share.created_at|date:"M d, Y H:i" }}</td>
+                    <td class="small text-muted">
+                        {% if share.expires_at %}{{ share.expires_at|date:"M d, H:i" }}{% else %}<span class="text-success">Never</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if share.is_revoked %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle"></i> Revoked</span>
+                        {% elif share.is_active %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle"></i> Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border">Expired</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if not share.is_revoked %}
+                        <form method="post" action="{% url 'sharing:revoke_share' share.id %}" onsubmit="return confirm('Revoke access for {{ share.recipient.username }}? They will immediately lose access to this file.')" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                                <i class="bi bi-x-circle me-1"></i>Revoke
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted small">
+                        <i class="bi bi-people fs-3 d-block mb-2 text-secondary"></i>
+                        You haven't shared any files directly with users yet.<br>
+                        <a href="{% url 'filemanager:my_files' %}" class="btn btn-sm btn-outline-primary mt-2">Go to My Files → Share</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MOBILE CARDS -->
+    <div class="d-md-none p-2">
+        {% for share in direct_shares %}
+        <div class="card border rounded-3 mb-2 {% if share.is_revoked %}border-danger-subtle bg-danger-subtle{% endif %}">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="overflow-hidden flex-grow-1 me-2">
+                        <a href="{% url 'filemanager:details' share.file_record.id %}" class="fw-semibold text-dark text-decoration-none d-block text-truncate">{{ share.file_record.display_name }}</a>
+                        <div class="small text-muted">to: <strong>@{{ share.recipient.username }}</strong>
+                            {% if share.recipient.is_admin or share.recipient.is_superuser %}
+                            <span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;"><i class="bi bi-shield-shaded"></i> Admin</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if share.is_revoked %}
+                    <span class="badge bg-danger flex-shrink-0">Revoked</span>
+                    {% elif share.is_active %}
+                    <span class="badge bg-success flex-shrink-0">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary flex-shrink-0">Expired</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex flex-wrap gap-1 mb-2" style="font-size:0.78rem;">
+                    <span class="badge {% if share.permission == 'DOWNLOADER' %}bg-primary{% else %}bg-info{% endif %}">
+                        {% if share.permission == 'DOWNLOADER' %}<i class="bi bi-download"></i>{% else %}<i class="bi bi-eye"></i>{% endif %}
+                        {{ share.get_permission_display }}
+                    </span>
+                    <span class="badge bg-light text-muted border"><i class="bi bi-calendar"></i> {{ share.created_at|date:"d M Y" }}</span>
+                    <span class="badge bg-light text-muted border"><i class="bi bi-clock"></i> {% if share.expires_at %}{{ share.expires_at|date:"d M" }}{% else %}No expiry{% endif %}</span>
+                </div>
+                {% if not share.is_revoked %}
+                <form method="post" action="{% url 'sharing:revoke_share' share.id %}" onsubmit="return confirm('Revoke access for {{ share.recipient.username }}?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                        <i class="bi bi-x-circle me-1"></i>Revoke Access
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted small p-3">
+            <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
+            No direct user shares yet.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  SECTION 2 — Sharing Links (QR / URL based)                 -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-5">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-link-45deg text-primary me-2"></i>
+            Public Sharing Links &amp; QR Codes
+            {% if link_items %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2">{{ link_items|length }}</span>{% endif %}
+        </h6>
+        <small class="text-muted d-none d-sm-block">Scan QR codes to access from any Wi-Fi device</small>
+    </div>
+
+    <!-- DESKTOP TABLE -->
+    <div class="table-responsive d-none d-md-block">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>File</th>
+                    <th>Security</th>
+                    <th>Downloads</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Link &amp; QR</th>
+                    <th class="text-end">Revoke</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in link_items %}
+                <tr>
+                    <td>
+                        <a href="{% url 'filemanager:details' item.link.file_record.id %}" class="fw-semibold text-dark text-decoration-none">
+                            {{ item.link.file_record.display_name }}
+                        </a>
+                        <div class="small text-muted">{{ item.link.created_at|date:"M d, H:i" }}</div>
+                    </td>
+                    <td>
+                        {% if item.link.is_password_protected %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-key-fill"></i> Password Protected</span>
+                        {% else %}
+                        <span class="badge bg-light text-secondary border">Open Token</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">
+                        <strong>{{ item.link.download_count }}</strong>
+                        {% if item.link.max_downloads %}/ {{ item.link.max_downloads }}{% else %} (Unlimited){% endif %}
+                    </td>
+                    <td class="small text-muted">
+                        {% if item.link.expires_at %}{{ item.link.expires_at|date:"M d, H:i" }}{% else %}Never{% endif %}
+                    </td>
+                    <td>
+                        {% if item.is_valid %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border" title="{{ item.status_msg }}">{{ item.status_msg }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.raw_token %}
+                        <div class="d-flex align-items-center gap-1">
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="copyToClipboard('{{ item.full_url }}', this)" title="Copy URL">
+                                <i class="bi bi-clipboard"></i> Copy Link
+                            </button>
+                            <button class="btn btn-sm btn-outline-dark py-0 px-2" data-bs-toggle="modal" data-bs-target="#qrModal{{ item.link.id }}" title="View QR Code">
+                                <i class="bi bi-qr-code-scan"></i> QR
+                            </button>
+                        </div>
+                        {% else %}
+                        <span class="small text-muted font-monospace">[Token Concealed]</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if not item.link.is_revoked %}
+                        <form method="post" action="{% url 'sharing:revoke_link' item.link.id %}" onsubmit="return confirm('Revoke this link? All future access attempts will be blocked.');" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
+                                <i class="bi bi-slash-circle me-1"></i>Revoke
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="small text-muted">Revoked</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted small">
+                        <i class="bi bi-link-45deg fs-3 d-block mb-2 text-secondary"></i>
+                        No sharing links generated yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MOBILE CARDS -->
+    <div class="d-md-none p-2">
+        {% for item in link_items %}
+        <div class="card border rounded-3 mb-2">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <a href="{% url 'filemanager:details' item.link.file_record.id %}" class="fw-semibold text-dark text-decoration-none text-truncate flex-grow-1 me-2" style="max-width:65%;">
+                        {{ item.link.file_record.display_name }}
+                    </a>
+                    {% if item.is_valid %}
+                    <span class="badge bg-success flex-shrink-0">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary flex-shrink-0">{{ item.status_msg }}</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex flex-wrap gap-1 mb-3" style="font-size:0.78rem;">
+                    {% if item.link.is_password_protected %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-key-fill"></i> Password</span>
+                    {% else %}
+                    <span class="badge bg-light text-secondary border">Open Token</span>
+                    {% endif %}
+                    <span class="badge bg-light text-muted border"><i class="bi bi-download"></i> {{ item.link.download_count }}{% if item.link.max_downloads %}/{{ item.link.max_downloads }}{% endif %}</span>
+                    <span class="badge bg-light text-muted border"><i class="bi bi-calendar"></i>
+                        {% if item.link.expires_at %}{{ item.link.expires_at|date:"d M" }}{% else %}No expiry{% endif %}
+                    </span>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if item.raw_token %}
+                    <button class="btn btn-sm btn-outline-primary flex-fill" onclick="copyToClipboard('{{ item.full_url }}', this)">
+                        <i class="bi bi-clipboard"></i> Copy Link
+                    </button>
+                    <button class="btn btn-sm btn-outline-dark flex-fill" data-bs-toggle="modal" data-bs-target="#qrModal{{ item.link.id }}">
+                        <i class="bi bi-qr-code-scan"></i> QR Code
+                    </button>
+                    {% endif %}
+                    {% if not item.link.is_revoked %}
+                    <form method="post" action="{% url 'sharing:revoke_link' item.link.id %}" onsubmit="return confirm('Revoke this link?');" class="flex-fill">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                            <i class="bi bi-slash-circle"></i> Revoke
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted small p-3">
+            <i class="bi bi-link-45deg fs-2 d-block mb-2 text-secondary"></i>
+            No sharing links yet.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

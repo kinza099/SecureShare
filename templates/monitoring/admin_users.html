@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management - Administrator{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">User Management</h4>
+        <p class="text-muted small mb-0">Role-Based Access Control (RBAC), account state, and lockout monitoring</p>
+    </div>
+    <form method="get" class="d-flex gap-1">
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search users..." value="{{ query }}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+        {% if query %}
+        <a href="{% url 'monitoring:admin_users' %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>User</th>
+                    <th class="d-none d-md-table-cell">Email</th>
+                    <th>Role</th>
+                    <th>Account State</th>
+                    <th class="d-none d-lg-table-cell">Failed Logins</th>
+                    <th class="d-none d-xl-table-cell">Last Login IP</th>
+                    <th class="d-none d-lg-table-cell">Registered</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="fw-semibold text-dark">{{ u.full_name|default:u.username }}</div>
+                        <div class="small text-muted font-monospace">@{{ u.username }}</div>
+                    </td>
+                    <td class="small d-none d-md-table-cell">{{ u.email }}</td>
+                    <td>
+                        {% if u.is_admin or u.is_superuser %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-shield-shaded me-1"></i>Administrator</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Standard User</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_suspended %}
+                        <span class="badge bg-danger">Suspended</span>
+                        {% elif u.is_locked %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Locked Out</span>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="small d-none d-lg-table-cell">
+                        {% if u.failed_login_attempts > 0 %}
+                        <span class="badge bg-danger-subtle text-danger">{{ u.failed_login_attempts }}</span>
+                        {% else %}
+                        <span class="text-muted">0</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-monospace small d-none d-xl-table-cell">{{ u.last_login_ip|default:"—" }}</td>
+                    <td class="small text-muted d-none d-lg-table-cell">{{ u.date_joined|date:"Y-m-d" }}</td>
+                    <td class="text-end text-nowrap">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <!-- Toggle Suspend -->
+                            {% if u != request.user %}
+                            <button type="submit" name="action" value="toggle_suspend" class="btn btn-sm {% if u.is_suspended %}btn-success{% else %}btn-outline-danger{% endif %} py-0 px-2">
+                                {% if u.is_suspended %}Activate{% else %}Suspend{% endif %}
+                            </button>
+                            <!-- Toggle Admin -->
+                            <button type="submit" name="action" value="toggle_admin" class="btn btn-sm btn-outline-secondary py-0 px-2 ms-1">
+                                {% if u.is_admin %}Demote{% else %}Make Admin{% endif %}
+                            </button>
+                            {% endif %}
+                            {% if u.is_locked or u.failed_login_attempts > 0 %}
+                            <button type="submit" name="action" value="reset_lockout" class="btn btn-sm btn-outline-warning py-0 px-2 ms-1" title="Clear failed attempts">
+                                Unlock
+                            </button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted small">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

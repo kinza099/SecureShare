@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - SecureShare{% endblock %}
+
+{% block content %}
+<!-- Welcome & Quick Actions Header -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Security Dashboard</h4>
+        <p class="text-muted small mb-0">Overview of your encrypted vault, sharing permissions, and audit logs</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'filemanager:upload' %}" class="btn btn-primary d-inline-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-cloud-arrow-up"></i> <span class="d-none d-sm-inline">Upload &amp; Encrypt</span><span class="d-sm-none">Upload</span>
+        </a>
+        <a href="{% url 'sharing:sharing_links' %}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1">
+            <i class="bi bi-link-45deg"></i> <span class="d-none d-sm-inline">Manage Links</span><span class="d-sm-none">Links</span>
+        </a>
+    </div>
+</div>
+
+<!-- Real Database-Driven Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon primary">
+                <i class="bi bi-folder2"></i>
+            </div>
+            <div>
+                <div class="stat-title">Uploaded Files</div>
+                <div class="stat-value">{{ total_files }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon success">
+                <i class="bi bi-shield-lock"></i>
+            </div>
+            <div>
+                <div class="stat-title">Encrypted (AES-GCM)</div>
+                <div class="stat-value">{{ total_encrypted }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon info">
+                <i class="bi bi-share"></i>
+            </div>
+            <div>
+                <div class="stat-title">Files Shared</div>
+                <div class="stat-value">{{ files_shared }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card d-flex align-items-center gap-3">
+            <div class="stat-icon warning">
+                <i class="bi bi-hdd-network"></i>
+            </div>
+            <div>
+                <div class="stat-title">Storage Used</div>
+                <div class="stat-value" style="font-size: 1.4rem;">{{ storage_used_formatted }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold">Active Sharing Links</div>
+                    <div class="h4 mb-0 fw-bold text-success">{{ active_links }}</div>
+                </div>
+                <div class="badge bg-success-subtle text-success p-2 rounded-circle fs-5">
+                    <i class="bi bi-link-45deg"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold">Files Received</div>
+                    <div class="h4 mb-0 fw-bold text-primary">{{ files_received }}</div>
+                </div>
+                <div class="badge bg-primary-subtle text-primary p-2 rounded-circle fs-5">
+                    <i class="bi bi-inbox"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold">Integrity Standard</div>
+                    <div class="h6 mb-0 fw-bold font-monospace text-dark">SHA-256 Digest</div>
+                </div>
+                <div class="badge bg-dark-subtle text-dark p-2 rounded-circle fs-5">
+                    <i class="bi bi-patch-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Files Section -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-files me-2 text-primary"></i>Recently Encrypted Files</h6>
+                <a href="{% url 'filemanager:my_files' %}" class="small text-decoration-none fw-semibold">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>File Name</th>
+                            <th class="d-none d-sm-table-cell">Size</th>
+                            <th class="d-none d-md-table-cell">Encryption</th>
+                            <th class="d-none d-md-table-cell">Integrity</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in recent_files %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="badge bg-light text-primary border p-2 rounded">
+                                        <i class="bi bi-file-earmark-lock fs-6"></i>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'filemanager:details' file.id %}" class="fw-semibold text-dark text-decoration-none text-truncate d-inline-block" style="max-width: 180px;">
+                                            {{ file.display_name }}
+                                        </a>
+                                        <div class="small text-muted">{{ file.file_type|upper }} • {{ file.created_at|date:"M d, Y" }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="small text-nowrap d-none d-sm-table-cell">{{ file.formatted_size }}</td>
+                            <td class="d-none d-md-table-cell"><span class="badge-aes">AES-256-GCM</span></td>
+                            <td class="d-none d-md-table-cell"><span class="badge-verified"><i class="bi bi-shield-check"></i> Verified</span></td>
+                            <td class="text-end text-nowrap">
+                                <a href="{% url 'filemanager:download' file.id %}" class="btn btn-sm btn-light text-primary" title="Download & Decrypt">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                <a href="{% url 'sharing:share_file' file.id %}" class="btn btn-sm btn-light text-info d-none d-sm-inline-block" title="Share with User">
+                                    <i class="bi bi-share"></i>
+                                </a>
+                                <a href="{% url 'sharing:create_link' file.id %}" class="btn btn-sm btn-light text-success d-none d-sm-inline-block" title="Create Protected Link">
+                                    <i class="bi bi-link-45deg"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-cloud-arrow-up fs-2 d-block mb-2 text-secondary"></i>
+                                No files encrypted yet.
+                                <div class="mt-2">
+                                    <a href="{% url 'filemanager:upload' %}" class="btn btn-sm btn-primary">Upload Your First File</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Audit Section -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-check me-2 text-success"></i>Security Activity</h6>
+                <a href="{% url 'monitoring:user_activity' %}" class="small text-decoration-none fw-semibold">View Log</a>
+            </div>
+            <div class="card-body p-3">
+                <div class="timeline">
+                    {% for act in recent_activities %}
+                    <div class="d-flex gap-3 mb-3 pb-3 border-bottom border-light">
+                        <div class="rounded-circle p-2 d-flex align-items-center justify-content-center bg-light text-primary" style="width: 32px; height: 32px; font-size: 0.9rem;">
+                            {% if 'UPLOAD' in act.event_type %}<i class="bi bi-cloud-arrow-up"></i>
+                            {% elif 'DOWNLOAD' in act.event_type %}<i class="bi bi-download"></i>
+                            {% elif 'LOGIN' in act.event_type %}<i class="bi bi-box-arrow-in-right"></i>
+                            {% elif 'SHARE' in act.event_type %}<i class="bi bi-share"></i>
+                            {% else %}<i class="bi bi-check2"></i>{% endif %}
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="small fw-semibold text-dark text-truncate">{{ act.get_event_type_display }}</div>
+                            <div class="text-muted small text-truncate" style="font-size: 0.78rem;">{{ act.description }}</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">{{ act.timestamp|timesince }} ago</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-muted small">No recent activity logged.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

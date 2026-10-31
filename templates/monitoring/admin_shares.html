@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Sharing Monitoring - Administrator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Sharing Activity & Links Monitor</h4>
+        <p class="text-muted small mb-0">System-wide monitoring of public sharing tokens and direct peer delegations</p>
+    </div>
+</div>
+
+<!-- Public Sharing Links -->
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
+    <div class="card-header bg-white py-3 border-bottom">
+        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-link-45deg text-primary me-2"></i>Public Link Tokens</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>File</th>
+                    <th>Creator</th>
+                    <th>Password Protected</th>
+                    <th>Downloads</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in links %}
+                <tr>
+                    <td>{{ l.file_record.display_name }}</td>
+                    <td>@{{ l.creator.username }}</td>
+                    <td>
+                        {% if l.is_password_protected %}
+                        <span class="badge bg-warning-subtle text-warning">Yes</span>
+                        {% else %}
+                        <span class="text-muted">No</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ l.download_count }}{% if l.max_downloads %} / {{ l.max_downloads }}{% endif %}</td>
+                    <td class="small text-muted">{{ l.expires_at|date:"Y-m-d H:i"|default:"Never" }}</td>
+                    <td>
+                        {% if l.is_revoked %}
+                        <span class="badge bg-danger-subtle text-danger">Revoked</span>
+                        {% elif l.is_valid.0 %}
+                        <span class="badge bg-success-subtle text-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary">Expired</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-3 text-muted">No sharing links generated.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Direct User-to-User Shares -->
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="card-header bg-white py-3 border-bottom">
+        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-people text-secondary me-2"></i>Direct Peer-to-Peer Shares</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>File</th>
+                    <th>Sender</th>
+                    <th>Recipient</th>
+                    <th>Permission</th>
+                    <th>Status</th>
+                    <th>Shared Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in shares %}
+                <tr>
+                    <td>{{ s.file_record.display_name }}</td>
+                    <td>@{{ s.sender.username }}</td>
+                    <td>@{{ s.recipient.username }}</td>
+                    <td><span class="badge bg-info-subtle text-info">{{ s.get_permission_display }}</span></td>
+                    <td>
+                        {% if s.is_revoked %}
+                        <span class="badge bg-danger-subtle text-danger">Revoked</span>
+                        {% elif s.is_active %}
+                        <span class="badge bg-success-subtle text-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary">Expired</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ s.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center py-3 text-muted">No peer-to-peer shares active.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

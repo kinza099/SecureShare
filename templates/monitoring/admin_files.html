@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}File Storage & Metadata Statistics - Administrator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Encrypted File Statistics</h4>
+        <p class="text-muted small mb-0">System-wide storage utilization and cryptographic metadata oversight</p>
+    </div>
+    <div class="badge bg-danger-subtle text-danger border border-danger-subtle p-2">
+        <i class="bi bi-shield-lock-fill me-1"></i> Zero-Trust Policy: Administrators cannot decrypt user private files
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>File Identifier</th>
+                    <th>Owner</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Encryption</th>
+                    <th>Integrity Status</th>
+                    <th>Storage File UUID</th>
+                    <th>Uploaded</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in files %}
+                <tr>
+                    <td>
+                        <span class="fw-semibold text-dark">{{ f.display_name }}</span>
+                        <div class="small text-muted font-monospace" style="font-size: 0.72rem;">{{ f.id }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">@{{ f.owner.username }}</span>
+                    </td>
+                    <td><span class="badge bg-secondary-subtle text-secondary font-monospace">{{ f.file_type|upper }}</span></td>
+                    <td class="small">{{ f.formatted_size }}</td>
+                    <td><span class="badge-aes">AES-256-GCM</span></td>
+                    <td><span class="badge-verified"><i class="bi bi-shield-check"></i> {{ f.encryption_metadata.integrity_status }}</span></td>
+                    <td class="small font-monospace text-truncate text-muted" style="max-width: 140px;">
+                        {{ f.encryption_metadata.stored_filename }}
+                    </td>
+                    <td class="small text-muted">{{ f.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted small">No encrypted files in system.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

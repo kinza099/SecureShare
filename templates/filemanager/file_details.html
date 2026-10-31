@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ file.display_name }} - Details{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold mb-0">{{ file.display_name }}</h4>
+            <span class="badge bg-secondary font-monospace">{{ file.file_type|upper }}</span>
+            <span class="badge bg-info-subtle text-info border border-info-subtle">v{{ file.current_version }}</span>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Uploaded by {{ file.owner.username }} on {{ file.created_at|date:"M d, Y H:i" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'filemanager:download' file.id %}" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-download"></i> Decrypt & Download
+        </a>
+        <a href="{% url 'filemanager:preview' file.id %}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bi bi-eye"></i> Preview
+        </a>
+        <a href="{% url 'sharing:share_file' file.id %}" class="btn btn-outline-info btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bi bi-share"></i> Share
+        </a>
+        <a href="{% url 'sharing:create_link' file.id %}" class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1">
+            <i class="bi bi-link-45deg"></i> Link & QR
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Cryptographic Specification & Metadata Card -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-lock-fill text-primary me-2"></i>Cryptographic Architecture & Metadata</h6>
+                <span class="badge-verified"><i class="bi bi-patch-check-fill me-1"></i>Integrity Verified</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="small text-muted d-block">Encryption Algorithm</label>
+                        <span class="badge-aes fs-6">AES-256-GCM (Authenticated)</span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small text-muted d-block">Key Wrapping Standard</label>
+                        <span class="fw-semibold font-monospace small">NIST SP 800-38F Key Wrap</span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="small text-muted d-block">Original SHA-256 Digest (Plaintext Pre-encryption)</label>
+                        <div class="p-2 bg-light rounded border font-monospace small text-break user-select-all">
+                            {{ file.sha256_hash }}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="small text-muted d-block">Master-KEK-Wrapped DEK (Hex Stored in Database)</label>
+                        <div class="p-2 bg-light rounded border font-monospace small text-break text-muted user-select-all" style="font-size: 0.78rem;">
+                            {{ file.encryption_metadata.wrapped_dek }}
+                        </div>
+                        <small class="text-success"><i class="bi bi-shield-check"></i> Raw 256-bit DEK is never stored; unwrapped only in volatile RAM upon download.</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="small text-muted d-block">AES-GCM Nonce (96-bit unique)</label>
+                        <div class="p-2 bg-light rounded border font-monospace small text-break">
+                            {{ file.encryption_metadata.nonce }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="small text-muted d-block">Private Storage Identifier (Outside Web Root)</label>
+                        <div class="p-2 bg-light rounded border font-monospace small text-truncate">
+                            {{ file.encryption_metadata.stored_filename }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Version History Summary -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>Version History</h6>
+                <a href="{% url 'filemanager:version_history' file.id %}" class="small text-decoration-none fw-semibold">Detailed History</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Version</th>
+                            <th>Size</th>
+                            <th>Summary</th>
+                            <th>Uploaded</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in versions %}
+                        <tr>
+                            <td>
+                                <span class="badge {% if v.version_number == file.current_version %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    v{{ v.version_number }} {% if v.version_number == file.current_version %}(Active){% endif %}
+                                </span>
+                            </td>
+                            <td>{{ v.formatted_size }}</td>
+                            <td class="text-muted">{{ v.change_summary|default:"No description" }}</td>
+                            <td class="text-muted">{{ v.created_at|date:"M d, H:i" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'filemanager:download' file.id %}?version={{ v.version_number }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="Download this version">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Sidebar Column -->
+    <div class="col-lg-4">
+        <!-- Rename Display Name Form -->
+        {% if file.owner == request.user %}
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-pencil-square text-primary me-2"></i>Rename File</h6>
+            </div>
+            <div class="card-body p-3">
+                <form method="post" action="{% url 'filemanager:rename' file.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Display Name</label>
+                        {{ rename_form.display_name }}
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">Update Name</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Upload New Version Form -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-cloud-arrow-up text-success me-2"></i>Upload New Version</h6>
+            </div>
+            <div class="card-body p-3">
+                <form method="post" enctype="multipart/form-data" action="{% url 'filemanager:upload_version' file.id %}">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Updated File</label>
+                        {{ version_form.file }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Change Summary</label>
+                        {{ version_form.change_summary }}
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-lock-fill me-1"></i> Encrypt New Version
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Danger Zone Delete File -->
+        <div class="card border-0 shadow-sm rounded-3 border-top border-danger border-3">
+            <div class="card-body p-3">
+                <h6 class="fw-bold text-danger mb-1">Delete File</h6>
+                <p class="small text-muted mb-3">Permanently removes file record and associated encrypted ciphertext storage.</p>
+                <form method="post" action="{% url 'filemanager:delete' file.id %}" onsubmit="return confirm('Are you sure you want to permanently delete this file and all its versions?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                        <i class="bi bi-trash3 me-1"></i> Delete Encrypted File
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

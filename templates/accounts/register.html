@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Account | Secure File Sharing System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="auth-wrapper">
+    <div class="auth-card" style="max-width: 540px;">
+        <div class="text-center mb-3">
+            <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-2" style="background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.3);">
+                <i class="bi bi-person-plus-fill text-info fs-2"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Create Account</h3>
+            <p class="text-secondary small mb-0">Role-Based Access Control • End-to-End Key Security</p>
+        </div>
+
+        {% if form.errors %}
+            <div class="alert alert-danger py-2 px-3 small alert-dismissible fade show mb-3" role="alert">
+                <strong>Validation Errors:</strong>
+                <ul class="mb-0 ps-3">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'accounts:register' %}">
+            {% csrf_token %}
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_full_name">Full Name</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="id_username">Username</label>
+                    {{ form.username }}
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label" for="id_email">Email Address</label>
+                {{ form.email }}
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_password">Password</label>
+                    {{ form.password }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="id_confirm_password">Confirm Password</label>
+                    {{ form.confirm_password }}
+                </div>
+            </div>
+
+            <div class="p-2 mb-3 rounded" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; color: #94a3b8;">
+                <div class="fw-semibold text-info mb-1"><i class="bi bi-shield-lock"></i> Strong Password Policy:</div>
+                <div>• Minimum 8 characters</div>
+                <div>• At least 1 uppercase (A-Z) and 1 lowercase (a-z)</div>
+                <div>• At least 1 digit (0-9) and 1 special symbol (!@#$%^&*)</div>
+                <div>• Hashed using <strong>Argon2id</strong> (memory-hard algorithm)</div>
+            </div>
+
+            <button type="submit" class="btn btn-cyber w-100 mb-3">
+                <i class="bi bi-check-circle me-1"></i> Register Account
+            </button>
+        </form>
+
+        <div class="text-center pt-2 border-top border-secondary border-opacity-25">
+            <span class="text-secondary small">Already have an account? </span>
+            <a href="{% url 'accounts:login' %}" class="text-info fw-semibold text-decoration-none small">Login Here</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

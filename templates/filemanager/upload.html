@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload & Encrypt File - SecureShare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Upload & Encrypt File</h4>
+                <p class="text-muted small mb-0">Files are encrypted with client-specific AES-256-GCM before persistent storage</p>
+            </div>
+            <a href="{% url 'filemanager:my_files' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-folder2"></i> My Files
+            </a>
+        </div>
+
+        {% if duplicate_warning %}
+        <div class="alert alert-warning border-warning shadow-sm mb-4" role="alert">
+            <div class="d-flex gap-3">
+                <div class="fs-1 text-warning"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div>
+                    <h5 class="alert-heading fw-bold">Duplicate File Detected in Your Account</h5>
+                    <p class="small mb-2">
+                        An identical file with matching SHA-256 digest already exists in your vault:
+                        <strong>"{{ existing_file.display_name }}"</strong> (Uploaded: {{ existing_file.created_at|date:"M d, Y" }}, Size: {{ existing_file.formatted_size }}).
+                    </p>
+                    <p class="small mb-3">Would you like to cancel or proceed to store another encrypted copy?</p>
+                    <div class="d-flex gap-2">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="confirm_duplicate" value="1">
+                            <input type="hidden" name="display_name" value="{{ temp_display_name }}">
+                            <div style="display: none;">
+                                {{ form.file }}
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-warning fw-semibold">
+                                Proceed & Save Another Copy
+                            </button>
+                        </form>
+                        <a href="{% url 'filemanager:details' existing_file.id %}" class="btn btn-sm btn-outline-dark">
+                            View Existing File
+                        </a>
+                        <a href="{% url 'filemanager:upload' %}" class="btn btn-sm btn-light">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" id="upload-form">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                    <div class="alert alert-danger py-2 px-3 small alert-dismissible fade show mb-3">
+                        <strong>Upload Rejected:</strong>
+                        <ul class="mb-0 ps-3">
+                            {% for field in form %}
+                                {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="file-input-field">Select File to Encrypt</label>
+                        {{ form.file }}
+                        <small class="text-muted d-block mt-1">
+                            Max size: <strong>50 MB</strong>. Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG, ZIP, CSV, XLSX, PPTX.
+                        </small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="id_display_name">Display Name (Optional)</label>
+                        {{ form.display_name }}
+                        <small class="text-muted">A friendly identifier visible to you and users you share with.</small>
+                    </div>
+
+                    <!-- Cryptographic Pipeline Indicator -->
+                    <div class="p-3 mb-4 rounded-3 bg-light border">
+                        <div class="fw-semibold text-dark small mb-2"><i class="bi bi-shield-check text-success me-1"></i>Automatic Cryptographic Safeguards:</div>
+                        <div class="row g-2 small text-muted">
+                            <div class="col-sm-6">✓ Magic Byte Signature Validation</div>
+                            <div class="col-sm-6">✓ Unique 256-bit DEK per File</div>
+                            <div class="col-sm-6">✓ Non-reusable 96-bit AES-GCM Nonce</div>
+                            <div class="col-sm-6">✓ NIST SP 800-38F Key Wrapping</div>
+                            <div class="col-sm-6">✓ Pre-encryption SHA-256 Hash</div>
+                            <div class="col-sm-6">✓ Stored Outside Web Root</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'filemanager:my_files' %}" class="btn btn-light">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4" id="upload-btn">
+                            <i class="bi bi-lock-fill me-1"></i> Encrypt & Save File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

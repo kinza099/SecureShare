@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}System Settings & LAN Architecture - Administrator{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">System Architecture & LAN Configuration</h4>
+        <p class="text-muted small mb-0">Overview of cryptographic standards, file constraints, and local network bindings</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- LAN / Wi-Fi Network Architecture Card -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-broadcast text-info me-2"></i>LAN / Wi-Fi Deployment Architecture</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="small text-muted d-block">Host Server Interface</label>
+                    <span class="font-monospace fw-bold text-dark">0.0.0.0 (All local interfaces)</span>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted d-block">Detected Host IPv4 Address</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="font-monospace fw-bold text-primary fs-5">{{ host_ip }}:{{ port }}</span>
+                        <button class="btn btn-sm btn-outline-secondary py-0" onclick="copyToClipboard('http://{{ host_ip }}:{{ port }}/', this)">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 bg-light rounded-3 border small text-muted">
+                    <strong class="text-dark d-block mb-1">Windows Firewall Setup Rule:</strong>
+                    <code>netsh advfirewall firewall add rule name="Django_LAN_SecureShare" dir=in action=allow protocol=TCP localport={{ port }}</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Architecture -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-database-lock text-primary me-2"></i>Database & Storage Isolation</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 small">
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Database Engine</span>
+                        <strong class="font-monospace">MySQL 8.x / SQLite3 ORM</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Database Access Scope</span>
+                        <strong class="text-success">Localhost (Host-Only)</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">File Storage Directory</span>
+                        <strong class="font-monospace">private_storage/ (Private)</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Public Web Exposure</span>
+                        <strong class="text-danger">None (Outside Web Root)</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cryptographic Engine Specifications -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-lock-fill text-success me-2"></i>Cryptographic Pipeline</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 small">
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Payload Encryption</span>
+                        <span class="badge-aes">AES-256-GCM</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Key Wrapping</span>
+                        <span class="fw-semibold">NIST SP 800-38F Key Wrap</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Password Hashing</span>
+                        <span class="badge bg-dark">Argon2id (RFC 9106)</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Integrity Verification</span>
+                        <span class="fw-semibold">SHA-256 Digest Match</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">Session Timeout</span>
+                        <span class="fw-semibold">{{ session_timeout_sec }} seconds (30 mins)</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block">CSRF Protection</span>
+                        <span class="badge bg-success-subtle text-success">Enabled (Strict)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Upload Policies -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-file-earmark-check text-warning me-2"></i>File Security Policies</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <span class="small text-muted d-block">Max Single Upload Size</span>
+                    <strong class="fs-5">{{ max_upload_size_mb }} MB</strong>
+                </div>
+                <div>
+                    <span class="small text-muted d-block mb-2">Permitted File Extensions</span>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for ext in allowed_extensions %}
+                        <span class="badge bg-light text-dark border font-monospace">.{{ ext }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
